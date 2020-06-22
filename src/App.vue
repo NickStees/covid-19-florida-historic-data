@@ -166,11 +166,28 @@
 
       <hr />
 
+      <div class="row padded">
+        <div class="col-md-12">
+          <div class="solid-bk text-center">
+            <strong style="color: #fb7dd4">NEW</strong> <span style="border-bottom: dashed #fb7dd4">Active Positive Cases</span> - The cumulative recent cases in the past {{daysForActiveCases}} days. This is the best estimate possible of measuring actively infected people.
+          </div>
+          </div>
+      </div>
+
       <div class="row">
         <div class="col-md-6">
           <div class="solid-bk">
           <div class="header">
+<div class="solid-bk">
+          <div class="header">
             <div
+              class="chartjs-title"
+              v-if="currentCounty.attributes"
+            >{{currentCounty.attributes.County_1}} County Active Cases and Testing</div>
+          </div>
+          <line-chart chart-id="county-testing-chart" :chart-data="lineTestingData" :options="lineTestingOptions" :height="330" :width="400"></line-chart>
+          </div>
+                    <hr>            <div
               class="chartjs-title"
               v-if="currentCounty.attributes"
             >{{currentCounty.attributes.County_1}} County Cases</div>
@@ -182,28 +199,25 @@
           </div>
           </div>
           <hr>
+
           <div class="solid-bk">
           <div class="header">
             <div
               class="chartjs-title"
               v-if="currentCounty.attributes"
-            >{{currentCounty.attributes.County_1}} County</div>
+            >{{currentCounty.attributes.County_1}} County Deaths</div>
           </div>
           <line-chart chart-id="county-chart2" :chart-data="barData2" :options="barOptions2" :height="330" :width="400"></line-chart>
           </div>
-          <hr>
-          <div class="solid-bk">
-          <div class="header">
-            <div
-              class="chartjs-title"
-              v-if="currentCounty.attributes"
-            >{{currentCounty.attributes.County_1}} County Testing</div>
-          </div>
-          <line-chart chart-id="county-testing-chart" :chart-data="lineTestingData" :options="lineTestingOptions" :height="330" :width="400"></line-chart>
-          </div>
         </div>
         <div class="col-md-6 state-col">
-           <div class="solid-bk">
+ <div class="solid-bk">
+          <div class="header">
+            <div class="chartjs-title">Florida State Active Cases and Testing</div>
+          </div>
+          <line-chart chart-id="state-testing-chart" :chart-data="stateLineTestingData" :options="stateLineTestingOptions" :height="330" :width="400"></line-chart>
+           </div>
+                     <hr>          <div class="solid-bk">
           <div class="header">
             <div class="chartjs-title">Florida State Cases</div>
           </div>
@@ -214,6 +228,7 @@
           </div>
            </div>
           <hr>
+
           <div class="solid-bk">
           <div class="header">
             <div
@@ -222,13 +237,6 @@
           </div>
           <line-chart chart-id="state-chart2" :chart-data="stateBarDataDeaths" :options="barOptions2" :height="330" :width="400"></line-chart>
           </div>
-          <hr>
-           <div class="solid-bk">
-          <div class="header">
-            <div class="chartjs-title">Florida State Testing</div>
-          </div>
-          <line-chart chart-id="state-testing-chart" :chart-data="stateLineTestingData" :options="stateLineTestingOptions" :height="330" :width="400"></line-chart>
-           </div>
         </div>
       </div>
 
@@ -264,6 +272,9 @@ export default {
     return {
       logo: ROOT_PATH + require('./assets/logo.png'),
       installBtn: false,
+      daysBackToFetch: 45,
+      daysBackToDisplay: 30,
+      daysForActiveCases: 14,
       installer: undefined,
       flCounties: [],
       flCountiesLoading: true,
@@ -340,6 +351,7 @@ export default {
       lineTestingOptions: {
           scales: {
             xAxes: [{
+              stacked: true,
                gridLines: {
                   color: 'rgba(255,255,255,.15)'
                 },
@@ -389,6 +401,7 @@ export default {
       stateLineTestingOptions:{
           scales: {
             xAxes: [{
+              stacked: true,
                gridLines: {
                   color: 'rgba(255,255,255,.15)'
                 },
@@ -457,7 +470,7 @@ export default {
       fetchedData.data
         .split("\n")
         .filter(d => d)
-        .splice(-30)
+        .splice(self.daysBackToFetch * -1)
         .forEach(async day => {
           try {
           let response = await axios.get(`/assets/data/${day}.json`);
@@ -496,7 +509,7 @@ export default {
       fetchedStateData.data
         .split("\n")
         .filter(d => d)
-        .splice(-30)
+        .splice(self.daysBackToFetch * -1)
         .forEach(async day => {
           try {
           let response = await axios.get(`/assets/data/${day}.json`);
@@ -607,7 +620,7 @@ export default {
 
       const results = self.alldata.sort((a, b) => a.date - b.date);
       let labels = results.map(x => x.mmdd);
-      let labelsOriginal = labels;
+      let labelsOriginal = [...labels];
       const thisCountyData = results.map(x => {
         var countyResults = _filter(x.data.features, {
           attributes: {
@@ -633,21 +646,7 @@ export default {
       gradientBlack.addColorStop(0.5, "rgba(0, 0, 0, 0.55)");
       gradientBlack.addColorStop(1, "rgba(0, 0, 0, .2)");
       var projectedData = [];
-      let countyData = results.map(x => {
-                projectedData.push(null)
-                var countyResults = _filter(x.data.features, {
-                  attributes: {
-                    COUNTYNAME: county.toUpperCase()
-                  }
-                });
-                if(countyResults.length && countyResults[0].attributes){
-                  return countyResults[0].attributes.T_positive
-                    ? parseInt(countyResults[0].attributes.T_positive)
-                    : 0;
-                }else{
-                  return 0
-                }
-              })
+      let countyData = self.getCountyAttributeValue(results, county, 'T_positive')
       self.selectedCountyCases = countyData;
       let justPercentNumbers = [];
       self.selectedCountyCasesIncrease = countyData.map((x, index) => {
@@ -670,10 +669,11 @@ export default {
       // let plusTwo = self.compoundInterest(countyLatestNum, average, 2);
       // let plusThree = self.compoundInterest(countyLatestNum, average, 3);
       // projectedData = projectedData.concat(plusOne, plusTwo, plusThree);
-      labels = labels.concat("+1");
+      // labels = labels.concat("+1");
       // console.log(projectedData)
+      let countyNewPerDay = [...self.selectedCountyIncreaseByDay].splice(self.daysBackToDisplay * -1);
       self.lineData = {
-          labels: labels,
+          labels: [...labels].splice(self.daysBackToDisplay * -1),
           datasets: [
             // {
             //   label: "Total Positive",
@@ -681,17 +681,11 @@ export default {
             //   borderColor: "#ea0000",
             //   data: countyData
             // },
-            // {
-            //   label: "Projected Cases",
-            //   borderColor: "#00bc8c",
-            //   data: projectedData,
-            //   borderDash: [5,3]
-            // },
             {
-              label: "New Per Day",
+              label: "New Positive Cases Per Day",
               backgroundColor: gradient,
               borderColor: "#ea0000",
-              data: self.selectedCountyIncreaseByDay,
+              data: countyNewPerDay,
               type: 'bar'
             },
           ]
@@ -717,103 +711,86 @@ export default {
         return self.diffChange(x, prevDayCnt);
       });
       self.barData2 = {
-          labels: labelsOriginal,
+          labels: [...labelsOriginal].splice(self.daysBackToDisplay * -1),
           datasets: [
+            // {
+            //   label: "Total Deaths",
+            //   backgroundColor: gradientBlack,
+            //   borderColor: "#929292",
+            //   data: countyDeathsData
+            // },
             {
-              label: "Total Deaths",
-              backgroundColor: gradientBlack,
-              borderColor: "#929292",
-              data: countyDeathsData
-            },
-            {
-              label: "New Per Day",
+              label: "Deaths Reported",
               backgroundColor: "#ce4307",
               borderColor: "#ea0000",
-              data: self.selectedCountyIncreaseDeathsByDay,
+              data: self.selectedCountyIncreaseDeathsByDay.splice(self.daysBackToDisplay * -1),
               type: 'bar'
             }
           ]
         }
       // bottom testing chart
-      const labels2 = results.map(x => x.mmdd);
+      const labels2 = results.map(x => x.mmdd).splice(self.daysBackToDisplay * -1);
+      // prep data
+      var activeCases = self.calcActiveCases(self.selectedCountyIncreaseByDay).splice(self.daysBackToDisplay * -1);
+      var countyNegative = self.getCountyAttributeValue(results, county, 'T_negative').splice(self.daysBackToDisplay * -1)
+      var countyPending = self.getCountyAttributeValue(results, county, 'TPending').splice(self.daysBackToDisplay * -1)
+      var countyPositive = self.getCountyAttributeValue(results, county, 'T_positive').splice(self.daysBackToDisplay * -1)
+      var countyHospital = self.getCountyAttributeValue(results, county, 'C_HospYes_Res').splice(self.daysBackToDisplay * -1)
+
+      // plot data
       self.lineTestingData = {
           labels: labels2,
           datasets: [
             {
+              label: "Active Pos. Cases",
+              type: 'line',
+              borderColor: "#fb7dd4",
+              data: activeCases,
+              borderDash: [5,3]
+            },
+            {
               label: "Pending",
+               type: 'bar',
               backgroundColor: "rgba(255, 197, 67, 1)",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: results.map(x => {
-                var countyResults = _filter(x.data.features, {
-                  attributes: {
-                    COUNTYNAME: county.toUpperCase()
-                  }
-                });
-                if(countyResults.length && countyResults[0].attributes){
-                  return countyResults[0].attributes.TPending
-                  ? countyResults[0].attributes.TPending
-                  : 0;
-                }else{
-                  return 0
-                }
-              })
-            },
-            {
-              label: "Negative",
-              backgroundColor: "rgba(2, 95, 2, 1)",
-              borderColor: "rgba(202, 0, 0, 0)",
-              data: results.map(x => {
-                var countyResults = _filter(x.data.features, {
-                  attributes: {
-                    COUNTYNAME: county.toUpperCase()
-                  }
-                });
-                if(countyResults.length && countyResults[0].attributes){
-                return countyResults[0].attributes.T_negative
-                  ? countyResults[0].attributes.T_negative
-                  : 0;
-                }else{
-                  return 0
-                }
-              })
-            },
-            {
-              label: "Positive",
-              backgroundColor: "#ea0000",
-              borderColor: "rgba(255, 99, 132, 0)",
-              data: results.map(x => {
-                var countyResults = _filter(x.data.features, {
-                  attributes: {
-                    COUNTYNAME: county.toUpperCase()
-                  }
-                });
-                if(countyResults.length && countyResults[0].attributes){
-                return countyResults[0].attributes.T_positive
-                  ? countyResults[0].attributes.T_positive
-                  : 0;
-                }else{
-                  return 0
-                }
-              })
+              data: countyPending.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = countyPending[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
             },
             {
               label: "Hospitalized",
+               type: 'bar',
               backgroundColor: "yellow",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: results.map(x => {
-                var countyResults = _filter(x.data.features, {
-                  attributes: {
-                    COUNTYNAME: county.toUpperCase()
-                  }
-                });
-                if(countyResults.length && countyResults[0].attributes){
-                return countyResults[0].attributes.C_HospYes_Res
-                  ? countyResults[0].attributes.C_HospYes_Res
-                  : 0;
-                }else{
-                  return 0
-                }
-              })
+              data: countyHospital.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = countyHospital[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
+            },
+            {
+              label: "Positive",
+               type: 'bar',
+              backgroundColor: "#ea0000",
+              borderColor: "rgba(255, 99, 132, 0)",
+              data: countyPositive.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = countyPositive[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
+            },
+            {
+              label: "Negative",
+               type: 'bar',
+              backgroundColor: "rgba(2, 95, 2, 1)",
+              borderColor: "rgba(202, 0, 0, 0)",
+              data: countyNegative.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = countyNegative[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
             },
           ]
         }
@@ -822,7 +799,7 @@ export default {
       var self = this;
       const resultsSorted = results.sort((a, b) => a.date - b.date)
       let labels = resultsSorted.map(x => x.mmdd);
-      let labelsOriginal = labels;
+      let labelsOriginal = [...labels];
       let gradient = document.getElementById("state-chart").getContext("2d").createLinearGradient(0, 0, 0, 450);
       gradient.addColorStop(0, "rgba(255, 0,0, 0.9)");
       gradient.addColorStop(0.5, "rgba(255, 0, 0, 0.65)");
@@ -862,10 +839,11 @@ export default {
       // let plusTwo = self.compoundInterest(latestValue, average, 2);
       // let plusThree = self.compoundInterest(latestValue, average, 3);
       // projectedData = projectedData.concat(plusOne, plusTwo, plusThree);
-      labels = labels.concat("+1");
+      // labels = labels.concat("+1");
       // labels = labels.shift();
+      let stateNewPerDay = [...self.selectedStateIncreaseByDay].splice(self.daysBackToDisplay * -1);
       this.stateLineData =  {
-          labels: labels,
+          labels: labels.splice(self.daysBackToDisplay * -1),
           datasets: [
             // {
             //   label: "Total Positive",
@@ -875,15 +853,16 @@ export default {
             // },
             // {
             //   label: "Projected Cases",
-            //   borderColor: "#00bc8c",
+            //   borderColor: "#fb7dd4",
             //   data: projectedData,
             //   borderDash: [5,3]
             // },
+
             {
-              label: "New Per Day",
+              label: "New Positive Cases Per Day",
               backgroundColor: gradient,
               borderColor: "#ea0000",
-              data: self.selectedStateIncreaseByDay,
+              data: stateNewPerDay,
               type: 'bar'
             },
           ]
@@ -894,58 +873,93 @@ export default {
         return self.diffChange(x, prevDayCnt);
       });
       this.stateBarDataDeaths =  {
-          labels: labelsOriginal,
+          labels:[...labelsOriginal].splice(self.daysBackToDisplay * -1),
           datasets: [
+            // {
+            //   label: "Deaths",
+            //   backgroundColor: gradientBlack,
+            //   borderColor: "#929292",
+            //   data: stateDeaths
+            // },
             {
-              label: "Deaths",
-              backgroundColor: gradientBlack,
-              borderColor: "#929292",
-              data: stateDeaths
-            },
-            {
-              label: "New Per Day",
+              label: "Deaths Reported",
               backgroundColor: "#ce4307",
               borderColor: "#ea0000",
-              data: self.selectedStateIncreaseDeathsByDay,
+              data: [...self.selectedStateIncreaseDeathsByDay].splice(self.daysBackToDisplay * -1),
               type: 'bar'
             }
           ]
         }
-      const labels2 = resultsSorted.map(x => x.mmdd);
+      const labels2 = resultsSorted.map(x => x.mmdd).splice(self.daysBackToDisplay * -1);
 
-      this.stateLineTestingData = {
+
+
+      let statePending = resultsSorted.map(x => x.data.features[0].attributes.Pending).splice(self.daysBackToDisplay * -1)
+      let stateNegative = resultsSorted.map(x => x.data.features[0].attributes.Negative).splice(self.daysBackToDisplay * -1)
+      let statePositive = resultsSorted.map(x => x.data.features[0].attributes.Positive).splice(self.daysBackToDisplay * -1)
+      let stateHospitalized = resultsSorted.map(x => x.data.features[0].attributes.Hospitalized).splice(self.daysBackToDisplay * -1)
+
+      var activeStateCases = self.calcActiveCases(self.selectedStateIncreaseByDay).splice(self.daysBackToDisplay * -1);
+          this.stateLineTestingData = {
           labels: labels2,
           datasets: [
             {
+              label: "Active Pos. Cases",
+              type: 'line',
+              borderColor: "#fb7dd4",
+              data: activeStateCases,
+              borderDash: [5,3]
+            },
+            {
               label: "Pending",
+              type: 'bar',
               backgroundColor: "rgba(255, 197, 67, 1)",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: resultsSorted.map(x => x.data.features[0].attributes.Pending)
-            },
-            {
-              label: "Negative",
-              backgroundColor: "rgba(2, 95, 2, 1)",
-              borderColor: "rgba(202, 0, 0, 0)",
-              data: resultsSorted.map(x => x.data.features[0].attributes.Negative)
-            },
-            {
-              label: "Positive",
-              backgroundColor: "#ea0000",
-              borderColor: "rgba(202, 0, 0, 0)",
-              data: resultsSorted.map(x => x.data.features[0].attributes.Positive)
+              data: statePending.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = statePending[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
             },
             {
               label: "Hospitalized",
+              type: 'bar',
               backgroundColor: "yellow",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: resultsSorted.map(x => x.data.features[0].attributes.Hospitalized)
-            },
-            {
-              label: "Deaths",
-              backgroundColor: "black",
+              data: stateHospitalized.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = stateHospitalized[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
+            },{
+              label: "Positive",
+              type: 'bar',
+              backgroundColor: "#ea0000",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: resultsSorted.map(x => x.data.features[0].attributes.Deaths)
-            }
+              data: statePositive.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = statePositive[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
+            },{
+              label: "Negative",
+              type: 'bar',
+              backgroundColor: "rgba(2, 95, 2, 1)",
+              borderColor: "rgba(202, 0, 0, 0)",
+              data: stateNegative.map((x, index) => {
+                  let prevDay = index >= 1 ? index - 1 : 0;
+                  let prevDayCnt = stateNegative[prevDay];
+                  return  Math.abs(self.diffChange(x, prevDayCnt));
+                })
+            },
+
+
+            // {
+            //   label: "Deaths",
+            //   backgroundColor: "black",
+            //   borderColor: "rgba(202, 0, 0, 0)",
+            //   data: resultsSorted.map(x => x.data.features[0].attributes.Deaths)
+            // }
           ]
         }
     },
@@ -969,6 +983,32 @@ export default {
       var x=(1+interest/100)
       var future_val=present_val*(Math.pow(x,times))
       return parseInt(future_val.toFixed(0));
+    },
+    getCountyAttributeValue(results, county, attributeName){
+      return results.map(x => {
+        var countyResults = _filter(x.data.features, {
+          attributes: {
+            COUNTYNAME: county.toUpperCase()
+          }
+        });
+        if(countyResults.length && countyResults[0].attributes){
+        return countyResults[0].attributes[attributeName]
+          ? countyResults[0].attributes[attributeName]
+          : 0;
+        }else{
+          return 0
+        }
+      })
+    },
+    calcActiveCases(listData){
+      return listData.map((x, index) => {
+        let start = 0;
+        if(index >= this.daysForActiveCases){
+          start = index - (this.daysForActiveCases - 1)
+        }
+        let activeRange = listData.slice(start, index)
+        return activeRange.reduce((a,b) => parseInt(a) + parseInt(b), 0)
+      });
     }
   },
   metaInfo() {
@@ -1051,12 +1091,12 @@ export default {
 }
 
 .active {
-  outline: solid 3px #00bc8c !important;
+  outline: solid 3px #fb7dd4 !important;
 }
 
 .item:hover {
   cursor: pointer;
-  outline: solid 3px #00bc8c4f;
+  outline: solid 3px #fb7dd44f;
 }
 
 .percentChange{
