@@ -169,7 +169,7 @@
       <div class="row padded">
         <div class="col-md-12">
           <div class="solid-bk text-center">
-            <strong style="color: #fb7dd4">NEW</strong> <span style="border-bottom: dashed #fb7dd4">Active Positive Cases</span> - The cumulative recent cases in the past {{daysForActiveCases}} days. This is the best estimate possible of measuring actively infected people.
+            <strong style="color: #fb7dd4">NEW</strong> <span style="border-bottom: dashed #fb7dd4 4px">Active Positive Cases</span> - The cumulative recent cases in the past {{daysForActiveCases}} days. This is the best estimate possible of measuring actively infected people.
           </div>
           </div>
       </div>
