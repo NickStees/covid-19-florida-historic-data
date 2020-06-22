@@ -178,8 +178,6 @@
         <div class="col-md-6">
           <div class="solid-bk">
           <div class="header">
-<div class="solid-bk">
-          <div class="header">
             <div
               class="chartjs-title"
               v-if="currentCounty.attributes"
@@ -187,7 +185,9 @@
           </div>
           <line-chart chart-id="county-testing-chart" :chart-data="lineTestingData" :options="lineTestingOptions" :height="330" :width="400"></line-chart>
           </div>
-                    <hr>            <div
+                    <hr>
+                    <div class="solid-bk">
+          <div class="header">           <div
               class="chartjs-title"
               v-if="currentCounty.attributes"
             >{{currentCounty.attributes.County_1}} County Cases</div>
@@ -672,15 +672,17 @@ export default {
       // labels = labels.concat("+1");
       // console.log(projectedData)
       let countyNewPerDay = [...self.selectedCountyIncreaseByDay].splice(self.daysBackToDisplay * -1);
+      let avgCases = self.calcAvgCases(self.selectedCountyIncreaseByDay).splice(self.daysBackToDisplay * -1);
+
       self.lineData = {
           labels: [...labels].splice(self.daysBackToDisplay * -1),
           datasets: [
-            // {
-            //   label: "Total Positive",
-            //   backgroundColor: gradient,
-            //   borderColor: "#ea0000",
-            //   data: countyData
-            // },
+            {
+              label: "7 Day Average",
+              // backgroundColor: gradient,
+              borderColor: "#008865",
+              data: avgCases
+            },
             {
               label: "New Positive Cases Per Day",
               backgroundColor: gradient,
@@ -842,15 +844,16 @@ export default {
       // labels = labels.concat("+1");
       // labels = labels.shift();
       let stateNewPerDay = [...self.selectedStateIncreaseByDay].splice(self.daysBackToDisplay * -1);
+      let avgCases = self.calcAvgCases(self.selectedStateIncreaseByDay).splice(self.daysBackToDisplay * -1);
       this.stateLineData =  {
           labels: labels.splice(self.daysBackToDisplay * -1),
           datasets: [
-            // {
-            //   label: "Total Positive",
-            //   backgroundColor: gradient,
-            //   borderColor: "#ea0000",
-            //   data: stateCases,
-            // },
+{
+              label: "7 Day Average",
+              // backgroundColor: gradient,
+              borderColor: "#008865",
+              data: avgCases
+            },
             // {
             //   label: "Projected Cases",
             //   borderColor: "#fb7dd4",
@@ -1004,12 +1007,24 @@ export default {
       return listData.map((x, index) => {
         let start = 0;
         if(index >= this.daysForActiveCases){
-          start = index - (this.daysForActiveCases - 1)
+          start = index - (this.daysForActiveCases)
         }
         let activeRange = listData.slice(start, index)
         return activeRange.reduce((a,b) => parseInt(a) + parseInt(b), 0)
       });
+    },
+    calcAvgCases(listData){
+      let daysBack = 7;
+      return listData.map((x, index) => {
+        let start = 0;
+        if(index >= daysBack){
+          start = index - (daysBack + 1)
+        }
+        let activeRange = listData.slice(start, index)
+        return activeRange.reduce((a,b) => parseInt(a) + parseInt(b), 0) / daysBack
+      });
     }
+
   },
   metaInfo() {
     return {
