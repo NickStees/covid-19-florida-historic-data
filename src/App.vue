@@ -169,7 +169,7 @@
       <div class="row padded">
         <div class="col-md-12">
           <div class="solid-bk text-center">
-            <strong style="color: #fb7dd4">NEW</strong> <span style="border-bottom: dashed #fb7dd4 4px">Active Positive Cases</span> - The cumulative recent cases in the past {{daysForActiveCases}} days. This is the best estimate possible of measuring actively infected people.
+            <strong style="color: #fb7dd4">NEW</strong> <span style="border-bottom: dashed #fb7dd4 4px">Active Positive Cases</span> - The sum of newly reported cases in the past {{daysForActiveCases}} days. Assuming the individual is no longer infected after {{daysForActiveCases}} days, this is the best method to estimate active corona virus cases in the region.
           </div>
           </div>
       </div>
