@@ -1,6 +1,12 @@
 <template>
   <div class="content container">
     <div id="app">
+      <div v-if="refreshModal" class="modal refresh-modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+          <p><i class="fa fa-refresh fa-spin fa-3x fa-fw"></i><br>Updating With Latest Data...</p>
+        </div>
+      </div>
       <div class="">
         <div class="text-center">
           <h1 class="text-white text-center">Florida Coronavirus (COVID-19) Tracker</h1>
@@ -271,6 +277,7 @@ export default {
   data: function() {
     return {
       logo: ROOT_PATH + require('./assets/logo.png'),
+      refreshModal: false,
       installBtn: false,
       daysBackToFetch: 45,
       daysBackToDisplay: 30,
@@ -1211,5 +1218,17 @@ export default {
 
         hr {
             border-top: 1px solid rgba(253, 253, 253, 0.42);
+        }
+        .refresh-modal{
+          display: block !important;
+        }
+        .refresh-modal .modal-content{
+          width: 100vw;
+          height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          background-color: #303030eb;
         }
 </style>
