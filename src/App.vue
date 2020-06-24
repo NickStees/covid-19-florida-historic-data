@@ -52,6 +52,13 @@
       </div>
 
 
+      <div class="row padded" v-if="messages.length">
+        <div class="alert alert-danger" v-for="message in messages">
+          {{message}}
+        </div>
+      </div>
+
+
       <div>
         <div class="row padded">
           <div class="col-md-6 col-lg-7">
@@ -280,6 +287,7 @@ export default {
     return {
       logo: ROOT_PATH + require('./assets/logo.png'),
       refreshModal: false,
+      messages: [],
       installBtn: false,
       daysBackToFetch: 45,
       daysBackToDisplay: 30,
@@ -512,6 +520,7 @@ export default {
         } catch (err) {
           console.log(err);
           self.$ga.event('error', 'nowData', err)
+          self.messages.push('Latest Data Issue: ' + err);
         }
       }
 
@@ -536,10 +545,12 @@ export default {
           } catch (err) {
             console.log(err);
             self.$ga.event('error', 'stateResults', err)
+            self.messages.push(err);
           }
           } catch (err) {
             console.log(err);
             self.$ga.event('error', 'fetchedStateData', err)
+            self.messages.push(err);
           }
         });
         console.log(hour)
@@ -559,6 +570,7 @@ export default {
           } catch (err) {
             console.log(err);
             self.$ga.event('error', 'fetchedNowStateData', err)
+            self.messages.push(err);
           }
         }
       let countyInfo = await axios.get('/assets/data/county-info.json');
@@ -580,6 +592,7 @@ export default {
     } catch (err) {
       console.log(err);
       self.$ga.event('error', 'mounted', err)
+      self.messages.push(err);
     }
   },
   filters: {
@@ -628,6 +641,7 @@ export default {
       } catch (err) {
         console.log(err);
         self.$ga.event('error', 'getData', err)
+        self.messages.push(err);
       }
     },
     plotData: function plotData(county) {
@@ -650,6 +664,7 @@ export default {
       if(!selectedCountyRecent.attributes) {
         self.$router.push("HILLSBOROUGH").catch(err => {console.log(err)})
         self.$ga.event('error', 'selectedCountyRecent', err)
+        self.messages.push(err);
         return null
           }
       self.selectedCounty = selectedCountyRecent;
