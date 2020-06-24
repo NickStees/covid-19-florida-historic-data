@@ -271,6 +271,8 @@ import LineChart from "./components/LineChart.js";
 import BarChart from "./components/BarChart.js";
 let ROOT_PATH = 'https://flacoronavirustracker.com/'
 
+// axios.defaults.timeout = 10000;
+
 export default {
   name: "App",
   components: { countTo, LineChart, BarChart },
@@ -443,6 +445,8 @@ export default {
       this.installBtn = true;
     })
 
+    document.addEventListener('swUpdated', this.updateAvailable, { once: true })
+
     this.installer = () => {
       this.installBtn = 'none';
       installPrompt.prompt();
@@ -610,6 +614,11 @@ export default {
     }
   },
   methods: {
+    updateAvailable(event) {
+      // this.registration = event.detail
+      this.refreshModal = true
+      setTimeout(function() { window.location.reload(true) }, 1000);
+    },
     track() {
       this.$ga.page("/");
     },
