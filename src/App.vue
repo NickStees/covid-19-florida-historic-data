@@ -453,7 +453,7 @@ export default {
       this.installBtn = true;
     })
 
-    document.addEventListener('swUpdated', this.updateAvailable, { once: true })
+    document.addEventListener('swUpdated', self.updateAvailable, { once: true })
 
     this.installer = () => {
       this.installBtn = 'none';
