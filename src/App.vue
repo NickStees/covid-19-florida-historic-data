@@ -31,6 +31,8 @@
                   <div class="badge" style="background-color:black;">
                   <span class="fa-2x"> <countTo :endVal='latestDeaths' :duration='1200'></countTo></span> Deaths
                   </div>
+                  <div><span class="badge">+{{parseInt(selectedStateIncreaseByDay[selectedStateIncreaseByDay.length -1]) | toLocal}}</span> New Cases</div>
+                  <div><span class="badge">{{stateCasesTestedPercent[stateCasesTestedPercent.length -1]}}%</span> of latest tests are positive</div>
                 </div>
               </div>
             </div>
@@ -124,10 +126,10 @@
                 <li class="list-group-item">
                   <div class="row">
                     <div class="col-6 text-right-desktop">
-                      <div class="badge fa-2x"><i class="fa fa-university small" aria-hidden="true"></i> {{((currentCounty.attributes.TPositive / countyInfo[currentCounty.attributes.COUNTYNAME].pop) * 100000).toFixed(0)}}</div>
+                      <div class="badge fa-2x"><i class="fa fa-university small" aria-hidden="true"></i> {{parseInt(((currentCounty.attributes.TPositive / countyInfo[currentCounty.attributes.COUNTYNAME].pop) * 100000).toFixed(0)) | toLocal}}</div>
                     </div>
                     <div class="col-6">
-                      <strong>Cases per Capita</strong><br><small>{{((currentCounty.attributes.TPositive / countyInfo[currentCounty.attributes.COUNTYNAME].pop) * 100000).toFixed(0)}} out of 100k people</small>
+                      <strong>Cases per Capita</strong><br><small>{{parseInt(((currentCounty.attributes.TPositive / countyInfo[currentCounty.attributes.COUNTYNAME].pop) * 100000).toFixed(0)) |toLocal}} out of 100k people</small>
                     </div>
                   </div>
                 </li>
@@ -135,11 +137,11 @@
                   <div class="row">
                     <div class="col-6 text-right-desktop">
                       <div class="fa-2x">
-                        {{(currentCounty.attributes.TPositive / currentCounty.attributes.T_total) | toPercent }}<sup>%</sup>
+                        {{selectedCountyTestedPercent[selectedCountyTestedPercent.length -1]}} <sup>%</sup>
                       </div>
                     </div>
                     <div class="col-6">
-                      <strong>Tested are positive <br> for COVID-19</strong>
+                      <strong>Latest Tested Postive <br> for COVID-19</strong>
                     </div>
                   </div>
                 </li>
@@ -197,6 +199,12 @@
             >{{currentCounty.attributes.County_1}} County Active Cases and Testing</div>
           </div>
           <line-chart chart-id="county-testing-chart" :chart-data="lineTestingData" :options="lineTestingOptions" :height="330" :width="400"></line-chart>
+          <div class="percentChange">
+            <div>Latest Postive Testing %</div>
+            <div v-for="percent in selectedCountyTestedPercent.slice(selectedCountyTestedPercent.length -6)">
+              <span class="text-danger">{{percent}}%</span>
+            </div>
+          </div>
           </div>
                     <hr>
                     <div class="solid-bk">
@@ -229,6 +237,12 @@
             <div class="chartjs-title">Florida State Active Cases and Testing</div>
           </div>
           <line-chart chart-id="state-testing-chart" :chart-data="stateLineTestingData" :options="stateLineTestingOptions" :height="330" :width="400"></line-chart>
+          <div class="percentChange">
+            <div>Latest Postive Testing %</div>
+            <div v-for="percent in stateCasesTestedPercent.slice(stateCasesTestedPercent.length -6)">
+              <span class="text-danger">{{percent}}%</span>
+            </div>
+          </div>
            </div>
                      <hr>          <div class="solid-bk">
           <div class="header">
@@ -300,6 +314,7 @@ export default {
       selectedCountyAvg: 0,
       selectedCountyCases: [],
       selectedCountyCasesIncrease: [],
+      selectedCountyTestedPercent: [],
       selectedCountyIncreaseByDay: [],
       selectedCountyIncreaseDeathsByDay: [],
       selectedStateIncreaseByDay: [],
@@ -307,6 +322,7 @@ export default {
       stateCases: [],
       latestDeaths: null,
       stateCasesIncrease: [],
+      stateCasesTestedPercent: [],
       stateAvg: 0,
       latestStateValue: 0,
       countyInfo: null,
@@ -770,6 +786,20 @@ export default {
       var countyPositive = self.getCountyAttributeValue(results, county, 'T_positive').splice(self.daysBackToDisplay * -1)
       var countyHospital = self.getCountyAttributeValue(results, county, 'C_HospYes_Res').splice(self.daysBackToDisplay * -1)
 
+      let positiveData = countyPositive.map((x, index) => {
+        let prevDay = index >= 1 ? index - 1 : 0;
+        let prevDayCnt = countyPositive[prevDay];
+        return  Math.abs(self.diffChange(x, prevDayCnt));
+      })
+      let negativeData = countyNegative.map((x, index) => {
+        let prevDay = index >= 1 ? index - 1 : 0;
+        let prevDayCnt = countyNegative[prevDay];
+        return  Math.abs(self.diffChange(x, prevDayCnt));
+      })
+      self.selectedCountyTestedPercent = positiveData.map((x, index) => {
+        return Math.floor((positiveData[index] / negativeData[index]) * 100);
+      });
+
       // plot data
       self.lineTestingData = {
           labels: labels2,
@@ -808,22 +838,14 @@ export default {
                type: 'bar',
               backgroundColor: "#ea0000",
               borderColor: "rgba(255, 99, 132, 0)",
-              data: countyPositive.map((x, index) => {
-                  let prevDay = index >= 1 ? index - 1 : 0;
-                  let prevDayCnt = countyPositive[prevDay];
-                  return  Math.abs(self.diffChange(x, prevDayCnt));
-                })
+              data: positiveData
             },
             {
               label: "Negative",
                type: 'bar',
               backgroundColor: "rgba(2, 95, 2, 1)",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: countyNegative.map((x, index) => {
-                  let prevDay = index >= 1 ? index - 1 : 0;
-                  let prevDayCnt = countyNegative[prevDay];
-                  return  Math.abs(self.diffChange(x, prevDayCnt));
-                })
+              data: negativeData
             },
           ]
         }
@@ -934,6 +956,21 @@ export default {
       let stateHospitalized = resultsSorted.map(x => x.data.features[0].attributes.Hospitalized).splice(self.daysBackToDisplay * -1)
 
       var activeStateCases = self.calcActiveCases(self.selectedStateIncreaseByDay).splice(self.daysBackToDisplay * -1);
+
+      let statePositiveData = statePositive.map((x, index) => {
+        let prevDay = index >= 1 ? index - 1 : 0;
+        let prevDayCnt = statePositive[prevDay];
+        return  Math.abs(self.diffChange(x, prevDayCnt));
+      })
+      let stateNegativeData = stateNegative.map((x, index) => {
+          let prevDay = index >= 1 ? index - 1 : 0;
+          let prevDayCnt = stateNegative[prevDay];
+          return  Math.abs(self.diffChange(x, prevDayCnt));
+        })
+        self.stateCasesTestedPercent = statePositiveData.map((x, index) => {
+        return Math.floor((statePositiveData[index] / stateNegativeData[index]) * 100);
+      });
+
           this.stateLineTestingData = {
           labels: labels2,
           datasets: [
@@ -970,21 +1007,13 @@ export default {
               type: 'bar',
               backgroundColor: "#ea0000",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: statePositive.map((x, index) => {
-                  let prevDay = index >= 1 ? index - 1 : 0;
-                  let prevDayCnt = statePositive[prevDay];
-                  return  Math.abs(self.diffChange(x, prevDayCnt));
-                })
+              data: statePositiveData
             },{
               label: "Negative",
               type: 'bar',
               backgroundColor: "rgba(2, 95, 2, 1)",
               borderColor: "rgba(202, 0, 0, 0)",
-              data: stateNegative.map((x, index) => {
-                  let prevDay = index >= 1 ? index - 1 : 0;
-                  let prevDayCnt = stateNegative[prevDay];
-                  return  Math.abs(self.diffChange(x, prevDayCnt));
-                })
+              data: stateNegativeData
             },
 
 
