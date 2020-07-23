@@ -797,7 +797,7 @@ export default {
         return  Math.abs(self.diffChange(x, prevDayCnt));
       })
       self.selectedCountyTestedPercent = positiveData.map((x, index) => {
-        return Math.floor((positiveData[index] / negativeData[index]) * 100);
+        return Math.floor((positiveData[index] / (negativeData[index] + positiveData[index])) * 100);
       });
 
       // plot data
@@ -968,7 +968,7 @@ export default {
           return  Math.abs(self.diffChange(x, prevDayCnt));
         })
         self.stateCasesTestedPercent = statePositiveData.map((x, index) => {
-        return Math.floor((statePositiveData[index] / stateNegativeData[index]) * 100);
+        return Math.floor((statePositiveData[index] / (stateNegativeData[index] + statePositiveData[index] )) * 100);
       });
 
           this.stateLineTestingData = {
